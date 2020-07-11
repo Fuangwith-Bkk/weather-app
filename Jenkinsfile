@@ -12,9 +12,9 @@ pipeline{
     mvnCmd = "source /usr/local/bin/scl_enable && mvn -s ./nexus_settings.xml"
 
     // Images and Projects
-    imageName   = "${GUID}-weather"
-    devProject  = "${GUID}-weather-dev"
-    prodProject = "${GUID}-weather-prod"
+    imageName   = "weather"
+    devProject  = "weather-dev"
+    prodProject = "weather-prod"
 
     // Tags
     devTag      = "0.0-0"
@@ -86,7 +86,7 @@ pipeline{
             //      Your project version should be ${devTag}
 
             def sonarHost = "http://sonarqube.demo-sonarqube.svc.cluster.local:9000"
-            def projectName = "${JOB_BASE_NAME}-${devTag}" //JOB_BASE_NAME or Jenkins Task must have no space
+            def projectName = "weather-app-${devTag}" //JOB_BASE_NAME or Jenkins Task must have no space
             echo "Project Name: ${projectName}"
             sh "$mvnCmd sonar:sonar -Dsonar.host.url=${sonarHost} -Dsonar.projectName=${projectName} -Dsonar.projectVersion=${devTag}"
 
