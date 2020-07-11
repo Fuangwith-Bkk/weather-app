@@ -1,7 +1,7 @@
 #!/bin/sh
 
 oc new-project demo-nexus --display-name "Nexus"
-oc new-app sonatype/nexus3:3.21.2 --name=nexus
+oc new-app sonatype/nexus3:3.18.1 --name=nexus
 oc expose svc nexus
 oc rollout pause dc nexus
 oc patch dc nexus --patch='{ "spec": { "strategy": { "type": "Recreate" }}}'
