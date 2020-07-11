@@ -23,7 +23,8 @@ public class WeatherService {
         england.setCities(Arrays.<City>asList(cities));
     }
 
-    //TODO: Inject selected country
+    @Inject
+    SelectedCountry selectedCountry;
     
 
     @PersistenceContext(unitName = "primary")
@@ -33,8 +34,7 @@ public class WeatherService {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     public Country getList() {
-        //return england; //TODO: Replace with call to database
-    	return em.find(Country.class,"en"/* TODO: Replace with dynamic call to get selected language*/);
+    	return em.find(Country.class,selectedCountry.getCode());
     }
 
 

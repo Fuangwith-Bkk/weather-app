@@ -9,8 +9,14 @@ import javax.ws.rs.PathParam;
 @RequestScoped
 @Path("country")
 public class CountryService {
-    //TODO: Inject selected country
+    
+	@Inject
+	SelectedCountry selectedCountry;
 
-    //TODO: Expose REST service to set the selected country
+	@PUT
+	@Path("/{code}")
+	public void setSelectedCountry(@PathParam("code") String countryCode) {
+	    selectedCountry.setCode(countryCode);
+	}
 
 }
