@@ -61,6 +61,18 @@ pipeline{
             }
           }
       }
+
+      // Using Maven run the unit tests
+    stage('Unit Tests') {
+      steps {
+        dir('code') {
+            echo "Running Unit Tests"
+            // mvn test -s ./nexus_settings.xml
+            sh "$mvnCmd test" 
+
+        }
+      }
+    }
   }
 
 }
