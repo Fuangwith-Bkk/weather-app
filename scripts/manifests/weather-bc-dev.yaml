@@ -1,0 +1,25 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  labels:
+    build: weather-app
+  name: weather-app
+spec:
+  output:
+    to:
+      kind: ImageStreamTag
+      name: weather-app:latest
+  postCommit: {}
+  resources: {}
+  runPolicy: Serial
+  source:
+    binary: {}
+    type: Binary
+  strategy:
+    sourceStrategy:
+      from:
+        kind: ImageStreamTag
+        name: jboss-eap72-openshift:1.0
+        namespace: openshift
+    type: Source
+  successfulBuildsHistoryLimit: 5

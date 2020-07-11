@@ -1,0 +1,61 @@
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  labels:
+    app: weather-app
+  name: weather-app
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    app: weather-app
+    deploymentconfig: weather-app
+  strategy:
+    activeDeadlineSeconds: 21600
+    resources: {}
+    rollingParams:
+      intervalSeconds: 1
+      maxSurge: 25%
+      maxUnavailable: 25%
+      timeoutSeconds: 600
+      updatePeriodSeconds: 1
+    type: Rolling
+  template:
+    metadata:
+      labels:
+        app: weather-app
+        deploymentconfig: weather-app
+    spec:
+      containers:
+      - env:
+        - name: DB_SERVICE_PREFIX_MAPPING
+          value: weather-postgresql=DB
+        - name: DB_JNDI
+          value: java:jboss/datasources/WeatherDS
+        - name: DB_DATABASE
+          value: weather-db
+        - name: DB_USERNAME
+          value: weather-app-user
+        - name: DB_PASSWORD
+          value: secret
+        image: image-registry.openshift-image-registry.svc:5000/dev-weather/weather-app:0.0-0
+        imagePullPolicy: Always
+        name: weather-app
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        - containerPort: 8443
+          protocol: TCP
+        - containerPort: 8778
+          protocol: TCP
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+  test: false
+  triggers: []
+
