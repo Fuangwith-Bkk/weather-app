@@ -73,6 +73,30 @@ pipeline{
         }
       }
     }
+
+    // Using Maven call SonarQube for Code Analysis
+    stage('Code Analysis') {
+      steps {
+        dir('code') {
+          script {
+            echo "Running Code Analysis"
+
+            // TBD: Execute Sonarqube Tests
+            //      Your project name should be "${GUID}-${JOB_BASE_NAME}-${devTag}"
+            //      Your project version should be ${devTag}
+
+            def sonarHost = "http://sonarqube.demo-sonarqube.svc.cluster.local:9000"
+            def projectName = "${JOB_BASE_NAME}-${devTag}" //JOB_BASE_NAME or Jenkins Task must have no space
+            echo "Project Name: ${projectName}"
+            sh "$mvnCmd sonar:sonar -Dsonar.host.url=${sonarHost} -Dsonar.projectName=${projectName} -Dsonar.projectVersion=${devTag}"
+
+          }
+        }
+      }
+    }
+
+
   }
 
 }
+
