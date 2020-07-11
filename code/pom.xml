@@ -66,18 +66,6 @@
 	            <version>2.22.1</version>
 	        </plugin>
         </plugins>
-    </build>
-    
-    <distributionManagement>
-        <repository>
-            <id>nexus</id>
-            <url>http://nexus.demo-nexus.svc.cluster.local:8081/content/repositories/releases</url>
-        </repository>
-        <snapshotRepository>
-            <id>nexus</id>
-            <url>http://nexus.demo-nexus.svc.cluster.local:8081/content/repositories/snapshots</url>
-        </snapshotRepository>
-    </distributionManagement>
-    
+    </build> 
 
 </project>
