@@ -29,23 +29,37 @@ pipeline{
       stage('Checkout Sourcecode'){
           steps{
               checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[url: 'https://github.com/Fuangwith-Bkk/weather-app.git']]])
-              script {
-                    def pom = readMavenPom file: 'pom.xml'
-                    def version = pom.version
-                    
-                    // Set the tag for the development image: version + build number
-                    devTag  = "${version}-" + currentBuild.number
-                    echo "devTag: ${devTag}"
-                    // Set the tag for the production image: version
-                    prodTag = "${version}"
-                    echo "prodTag: ${prodTag} "
 
+              dir('code'){
+                script {
+                        def pom = readMavenPom file: 'pom.xml'
+                        def version = pom.version
+                        
+                        // Set the tag for the development image: version + build number
+                        devTag  = "${version}-" + currentBuild.number
+                        echo "devTag: ${devTag}"
+                        // Set the tag for the production image: version
+                        prodTag = "${version}"
+                        echo "prodTag: ${prodTag} "
                 }
+              }
           }
       }
 
       stage('Build War'){
-          
+          steps {
+            dir('code') {
+                echo "Building version ${devTag}"
+                script {
+
+                    //TBD: Execute the Maven Build
+                    // mvn clean package -DskipTests=true -s ./nexus_settings.xml
+                    // source /usr/local/bin/scl_enable && mvn -s ./nexus_settings.xml
+                    sh "$mvnCmd -DskipTests=true clean package"
+
+                }
+            }
+          }
       }
   }
 
