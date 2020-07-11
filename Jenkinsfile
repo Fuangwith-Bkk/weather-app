@@ -142,6 +142,46 @@ pipeline{
     }
 
 
+    // Deploy the built image to the Development Environment.
+    stage('Deploy to Dev') {
+      steps {
+        dir('code') {
+          echo "Deploying container image to Development Project"
+          script {
+
+            openshift.withCluster(){
+              openshift.withProject("${devProject}"){
+                echo "In project: ${devProject}"
+                // TBD: Deploy the image [Chan]
+                // 1. Update the image on the dev deployment config
+                def imageTasks = "image-registry.openshift-image-registry.svc:5000/${devProject}/${imageName}:${devTag}"
+                echo "Image Tasks is ${imageTasks}"
+                openshift.set("image","dc/weather-app","weather-app=${imageTasks}")
+
+                // 2. Reeploy the dev deployment
+                echo "Rollout dc/weather-app"
+                openshift.selector("dc","weather-app").rollout().latest()
+
+                // 4. Wait until the deployment is running
+                def dc = openshift.selector("dc", "weather-app").object()
+                def dc_version = dc.status.latestVersion
+                def rc = openshift.selector("rc", "weather-app-${dc_version}").object()
+
+                echo "Waiting for ReplicationController tasks-${dc_version} to be ready.."
+                while (rc.spec.replicas != rc.status.readyReplicas) {
+                  sleep 5
+                  rc = openshift.selector("rc", "weather-app-${dc_version}").object()
+                }
+
+              }
+            }
+ 
+          }
+        }
+      }
+    }
+
+
   }
 
 }
