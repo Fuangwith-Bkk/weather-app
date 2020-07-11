@@ -181,6 +181,39 @@ pipeline{
       }
     }
 
+    // Copy Image to Nexus Container Registry
+    stage('Copy Image to Nexus Container Registry') {
+      steps {
+        echo "Copy image to Nexus Container Registry"
+        script {
+
+          // TBD: Copy image to Nexus container registry
+          // https://www.redhat.com/en/blog/skopeo-copy-rescue
+          echo "Skopeo copy.."
+          def imageTasksDev = "image-registry.openshift-image-registry.svc:5000/${devProject}/${imageName}:${devTag}"
+          def imageNexus = "homework-nexus-registry.gpte-hw-cicd.svc.cluster.local:5000/${imageName}:${devTag}"
+          echo "FROM ${imageTasksDev} TO ${imageNexus}"
+          sh ("""skopeo copy \
+               --src-tls-verify=false \
+               --dest-tls-verify=false \
+               --src-creds openshift:\$(oc whoami -t) \
+               --dest-creds admin:redhat \
+               docker://${imageTasksDev} \
+               docker://${imageNexus}""")
+
+          // TBD: Tag the built image with the production tag.
+          echo "Tag built image with the production tag..."
+          openshift.withCluster(){
+            openshift.withProject("${prodProject}"){
+              echo "In project ${prodProject}"
+              openshift.tag("${devProject}/${imageName}:${devTag}", "${devProject}/${imageName}:${prodTag}")
+            }
+          }
+
+        }
+      }
+    }
+
 
   }
 
