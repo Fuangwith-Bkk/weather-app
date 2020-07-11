@@ -6,15 +6,15 @@ import javax.persistence.Id;
 import javax.persistence.OneToMany;
 import java.util.List;
 
-//TODO: Add Entity annotation
+@Entity
 public class Country {
 
-    // TODO: add Id annotation
+    @Id
     private String id;
 
     private String name;
 
-    // TODO: add one to many annotation
+    @OneToMany(fetch = FetchType.EAGER)
     private List<City> cities;
 
     public String getId() {

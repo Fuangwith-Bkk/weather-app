@@ -24,14 +24,17 @@ public class WeatherService {
     }
 
     //TODO: Inject selected country
+    
 
-    //TODO: Inject EntityManager
+    @PersistenceContext(unitName = "primary")
+    EntityManager em;
 
     //TODO: Expose REST GET service get country as JSON
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     public Country getList() {
-        return england; //TODO: Replace with call to database
+        //return england; //TODO: Replace with call to database
+    	return em.find(Country.class,"en"/* TODO: Replace with dynamic call to get selected language*/);
     }
 
 

@@ -2,9 +2,10 @@ package com.redhat.example.weather;
 
 import javax.persistence.*;
 
-//TODO: Add Entity annotation
+@Entity
 public class City {
-    // TODO: add Id annotation
+    
+	@Id
     private String id;
     private String name;
     private String weatherType;
