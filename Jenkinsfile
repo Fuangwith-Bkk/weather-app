@@ -13,8 +13,8 @@ pipeline{
 
     // Images and Projects
     imageName   = "weather-app"
-    devProject  = "dev-weather"
-    prodProject = "prod-weather"
+    devProject  = "demo-weather-dev"
+    prodProject = "demo-weather-prod"
 
     // Tags
     devTag      = "0.0-0"
@@ -131,7 +131,10 @@ pipeline{
                 
 
                 echo "Binary file in Nexus (nexusFile): ${nexusFile}"
-                openshift.selector("bc","weather-app").startBuild("--from-file=$nexusFile","--wait=true")
+                //file name must be ROOT.war to deploy application at context root 
+                sh ("curl -o ROOT.war -s ${nexusFile}")
+                sh ('ls -l')
+                openshift.selector("bc","weather-app").startBuild("--from-file=ROOT.war","--wait=true")
                 openshift.tag("${imageName}:latest","${imageName}:${devTag}")
               }
             }
@@ -154,9 +157,9 @@ pipeline{
                 echo "In project: ${devProject}"
                 // TBD: Deploy the image [Chan]
                 // 1. Update the image on the dev deployment config
-                def imageTasks = "image-registry.openshift-image-registry.svc:5000/${devProject}/${imageName}:${devTag}"
-                echo "Image Tasks is ${imageTasks}"
-                openshift.set("image","dc/weather-app","weather-app=${imageTasks}")
+                def imageWeather = "image-registry.openshift-image-registry.svc:5000/${devProject}/${imageName}:${devTag}"
+                echo "Image weather-app is ${imageWeather}"
+                openshift.set("image","dc/weather-app","weather-app=${imageWeather}")
 
                 // 2. Reeploy the dev deployment
                 echo "Rollout dc/weather-app"
@@ -167,7 +170,7 @@ pipeline{
                 def dc_version = dc.status.latestVersion
                 def rc = openshift.selector("rc", "weather-app-${dc_version}").object()
 
-                echo "Waiting for ReplicationController tasks-${dc_version} to be ready.."
+                echo "Waiting for ReplicationController weather-app-${dc_version} to be ready.."
                 while (rc.spec.replicas != rc.status.readyReplicas) {
                   sleep 5
                   rc = openshift.selector("rc", "weather-app-${dc_version}").object()
@@ -182,7 +185,10 @@ pipeline{
     }
 
     // Copy Image to Nexus Container Registry
-    stage('Copy Image to Nexus Container Registry') {
+    stage('Copy Image to Registry') {
+      agent {
+        label 'skopeo'
+      }
       steps {
         echo "Copy image to Nexus Container Registry"
         script {
@@ -190,15 +196,15 @@ pipeline{
           // TBD: Copy image to Nexus container registry
           // https://www.redhat.com/en/blog/skopeo-copy-rescue
           echo "Skopeo copy.."
-          def imageTasksDev = "image-registry.openshift-image-registry.svc:5000/${devProject}/${imageName}:${devTag}"
-          def imageNexus = "homework-nexus-registry.gpte-hw-cicd.svc.cluster.local:5000/${imageName}:${devTag}"
-          echo "FROM ${imageTasksDev} TO ${imageNexus}"
+          def imageWeatherDev = "image-registry.openshift-image-registry.svc:5000/${devProject}/${imageName}:${devTag}"
+          def imageNexus = "nexus-registry.demo-nexus.svc.cluster.local:5000/${imageName}:${devTag}"
+          echo "FROM ${imageWeatherDev} TO ${imageNexus}"
           sh ("""skopeo copy \
                --src-tls-verify=false \
                --dest-tls-verify=false \
                --src-creds openshift:\$(oc whoami -t) \
-               --dest-creds admin:redhat \
-               docker://${imageTasksDev} \
+               --dest-creds admin:passw0rd \
+               docker://${imageWeatherDev} \
                docker://${imageNexus}""")
 
           // TBD: Tag the built image with the production tag.
@@ -213,6 +219,8 @@ pipeline{
         }
       }
     }
+
+    
 
 
   }
