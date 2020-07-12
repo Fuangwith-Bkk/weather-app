@@ -2,14 +2,14 @@ apiVersion: apps.openshift.io/v1
 kind: DeploymentConfig
 metadata:
   labels:
-    app: weather-app
-  name: weather-app
+    app: weather-app-blue
+  name: weather-app-blue
 spec:
   replicas: 1
   revisionHistoryLimit: 10
   selector:
-    app: weather-app
-    deploymentconfig: weather-app
+    app: weather-app-blue
+    deploymentconfig: weather-app-blue
   strategy:
     activeDeadlineSeconds: 21600
     resources: {}
@@ -23,8 +23,8 @@ spec:
   template:
     metadata:
       labels:
-        app: weather-app
-        deploymentconfig: weather-app
+        app: weather-app-blue
+        deploymentconfig: weather-app-blue
     spec:
       containers:
       - env:
@@ -38,9 +38,11 @@ spec:
           value: weather-app-user
         - name: DB_PASSWORD
           value: secret
+        - name: VERSION
+          value: 0.0 (weather-app-blue)
         image: image-registry.openshift-image-registry.svc:5000/demo-weather-dev/weather-app:0.0-0
         imagePullPolicy: Always
-        name: weather-app
+        name: weather-app-blue
         ports:
         - containerPort: 8080
           protocol: TCP
