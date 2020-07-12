@@ -1,0 +1,256 @@
+apiVersion: v1
+kind: BuildConfig
+metadata:
+  annotations:
+    pipeline.alpha.openshift.io/uses: '[{"name": "jenkins", "namespace": "", "kind": "DeploymentConfig"}]'
+  labels:
+    app: weather-app-pipeline
+    name: weather-app-pipeline
+  name: weather-app-pipeline
+spec:
+  runPolicy: Serial
+  source:
+    type: None
+  strategy:
+    jenkinsPipelineStrategy:
+      jenkinsfile: |-
+        pipeline{
+
+          agent {
+            label 'maven'
+          }
+
+          environment { 
+            mvnCmd = "source /usr/local/bin/scl_enable && mvn -s ./nexus_settings.xml"
+
+            imageName   = "weather-app"
+            devProject  = "demo-weather-dev"
+            prodProject = "demo-weather-prod"
+
+            devTag      = "0.0-0"
+            prodTag     = "0.0"
+            
+            destApp     = "weather-app-green"
+            activeApp   = ""
+          }
+
+          stages{
+              stage('Checkout Sourcecode'){
+                  steps{
+                      checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[url: 'https://github.com/Fuangwith-Bkk/weather-app.git']]])
+
+                      dir('code'){
+                        script {
+                                def pom = readMavenPom file: 'pom.xml'
+                                def version = pom.version
+                                
+                                devTag  = "${version}-" + currentBuild.number
+                                echo "devTag: ${devTag}"
+                                
+                                prodTag = "${version}"
+                                echo "prodTag: ${prodTag} "
+                        }
+                      }
+                  }
+              }
+
+              stage('Build War'){
+                  steps {
+                    dir('code') {
+                        echo "Building version ${devTag}"
+                        script {
+                            sh "$mvnCmd -DskipTests=true clean package"
+                        }
+                    }
+                  }
+              }
+
+            stage('Unit Tests') {
+              steps {
+                dir('code') {
+                    echo "Running Unit Tests"
+                    sh "$mvnCmd test" 
+                }
+              }
+            }
+
+            stage('Code Analysis') {
+              steps {
+                dir('code') {
+                  script {
+                    echo "Running Code Analysis"
+                    def sonarHost = "http://sonarqube.demo-sonarqube.svc.cluster.local:9000"
+                    def projectName = "weather-app-${devTag}" 
+                    echo "Project Name: ${projectName}"
+                    sh "$mvnCmd sonar:sonar -Dsonar.host.url=${sonarHost} -Dsonar.projectName=${projectName} -Dsonar.projectVersion=${devTag}"
+
+                  }
+                }
+              }
+            }
+
+            stage('Publish to Nexus') {
+              steps {
+                dir('code') {
+                  script {
+                    echo "Publish to Nexus"
+                    def nexusRepo = "http://nexus.demo-nexus.svc.cluster.local:8081/repository/releases/"
+                    echo "Nexus Repository: ${nexusRepo}"
+                    sh "$mvnCmd deploy -DskipTest=true -DaltDeploymentRepository=nexus::default::${nexusRepo}"
+                  }
+                }
+              }
+            }
+
+            stage('Build and Tag OpenShift Image') {
+              steps {
+                dir('code') {
+                  echo "Building OpenShift container image ${imageName}:${devTag} in project ${devProject}."
+
+                  script {
+                    openshift.withCluster(){
+                      openshift.withProject("${devProject}"){
+                        echo "In project ${devProject}"
+                        def nexusRepo = "http://nexus.demo-nexus.svc.cluster.local:8081/repository/releases/"
+                        def nexusBinFile = "com/redhat/examples/${imageName}/${prodTag}/${imageName}-${prodTag}.war"   
+                        def nexusFile = "${nexusRepo}${nexusBinFile}"
+                        
+                        echo "Binary file in Nexus (nexusFile): ${nexusFile}"
+                        sh ("curl -o ROOT.war -s ${nexusFile}")
+                        sh ('ls -l')
+                        openshift.selector("bc","weather-app").startBuild("--from-file=ROOT.war","--wait=true")
+                        openshift.tag("${imageName}:latest","${imageName}:${devTag}")
+                      }
+                    }
+                  }
+                }
+              }
+            }
+
+            stage('Deploy to Dev') {
+              steps {
+                dir('code') {
+                  echo "Deploying container image to Development Project"
+                  script {
+
+                    openshift.withCluster(){
+                      openshift.withProject("${devProject}"){
+                        echo "In project: ${devProject}"
+
+                        def imageWeather = "image-registry.openshift-image-registry.svc:5000/${devProject}/${imageName}:${devTag}"
+                        echo "Image weather-app is ${imageWeather}"
+                        openshift.set("image","dc/weather-app","weather-app=${imageWeather}")
+
+                        echo "Rollout dc/weather-app"
+                        openshift.selector("dc","weather-app").rollout().latest()
+
+                        def dc = openshift.selector("dc", "weather-app").object()
+                        def dc_version = dc.status.latestVersion
+                        def rc = openshift.selector("rc", "weather-app-${dc_version}").object()
+
+                        echo "Waiting for ReplicationController weather-app-${dc_version} to be ready.."
+                        while (rc.spec.replicas != rc.status.readyReplicas) {
+                          sleep 5
+                          rc = openshift.selector("rc", "weather-app-${dc_version}").object()
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+
+            stage('Copy Image to Registry') {
+              agent {
+                label 'skopeo'
+              }
+              steps {
+                echo "Copy image to Nexus Container Registry"
+                script {
+                  echo "Skopeo copy.."
+                  def imageWeatherDev = "image-registry.openshift-image-registry.svc:5000/${devProject}/${imageName}:${devTag}"
+                  def imageNexus = "nexus-registry.demo-nexus.svc.cluster.local:5000/${imageName}:${devTag}"
+                  echo "FROM ${imageWeatherDev} TO ${imageNexus}"
+                  sh ("""skopeo copy \
+                      --src-tls-verify=false \
+                      --dest-tls-verify=false \
+                      --src-creds openshift:\$(oc whoami -t) \
+                      --dest-creds admin:passw0rd \
+                      docker://${imageWeatherDev} \
+                      docker://${imageNexus}""")
+
+                  echo "Tag built image with the production tag..."
+                  openshift.withCluster(){
+                    openshift.withProject("${prodProject}"){
+                      echo "In project ${prodProject}"
+                      openshift.tag("${devProject}/${imageName}:${devTag}", "${devProject}/${imageName}:${prodTag}")
+                    }
+                  }
+
+                }
+              }
+            }
+
+            stage('Blue/Green Production Deployment') {
+              steps {
+                dir('code') {
+                  script {
+          
+                    openshift.withCluster(){
+                      openshift.withProject("${prodProject}"){
+                        echo "Blue/Green Production Deployment in project: ${prodProject}"
+
+                        activeApp = openshift.selector("route","weather-app").object().spec.to.name
+                        if(activeApp == "weather-app-green"){
+                          destApp = "weather-app-blue"
+                        }
+                        echo "Active App: ${activeApp} -> Destination App: ${destApp}"
+
+                        def imageWeather = "image-registry.openshift-image-registry.svc:5000/${devProject}/${imageName}:${devTag}"
+                        echo "Image Weather is ${imageWeather}"
+                        def dc = openshift.selector("dc","${destApp}").object()
+                        dc.spec.template.spec.containers[0].image = "$imageWeather"
+
+                        echo "Apply DeploymentConfig"
+                        openshift.apply(dc)
+
+                        echo "Rollout new app"
+                        openshift.selector("dc", "${destApp}").rollout().latest()
+
+                        def dc_prod = openshift.selector("dc", "${destApp}").object()
+                        def dc_version = dc_prod.status.latestVersion
+                        def rc_prod = openshift.selector("rc", "${destApp}-${dc_version}").object()
+
+                        echo "Waiting for ReplicationController ${destApp}-${dc_version} to be ready"
+                        while (rc_prod.spec.replicas != rc_prod.status.readyReplicas) {
+                          sleep 5
+                          rc_prod = openshift.selector("rc", "${destApp}-${dc_version}").object()
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+
+
+            stage('Switch over to new Version') {
+              steps{
+                echo "Switching Production application to ${destApp}."
+                script {
+                  openshift.withCluster(){
+                    openshift.withProject("${prodProject}"){
+                      input "Switch new vesion to product?"
+                      echo "Switching Production application to ${destApp}."
+
+                      def route = openshift.selector("route","weather-app").object()
+                      route.spec.to.name = "${destApp}"
+                      openshift.apply(route)
+                    }
+                  }
+                }
+              }
+            }
+          }
+        } 
+    type: JenkinsPipeline
