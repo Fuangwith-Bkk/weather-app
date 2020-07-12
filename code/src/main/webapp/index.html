@@ -29,11 +29,14 @@
 
 <main role="main" class="container">
 
+  <div id="host-info">
+  	<!-- host info here -->
+  </div>
+
   <div id="city-list">
     <!-- weather list goes here -->
   </div>
 
-  </div>
 
 </main><!-- /.container -->
 
@@ -65,6 +68,21 @@
 </script>
 
 <script>
+	$.ajax({
+	    url: '/api/host',
+	    type: 'GET',
+	    dataType: 'json',
+	    success: function(data) {
+	       // var obj = jQuery.parseJSON(data);
+	        $("#host-info").html(data.hostName);
+	        console.log(data);
+	    },
+	    error: function(error) {
+	        //$('#chat-window-main').html("<p>No welcome message implemented yet!!!</p>");
+	        console.log(error);
+	    }
+	});
+
     $.ajax({
         url: '/api/weather',
         type: 'GET',
