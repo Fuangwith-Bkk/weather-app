@@ -18,7 +18,7 @@ oc get pods -w
 export NEXUS_POD=$(oc get pods | grep nexus | grep -v deploy | awk '{print $1}')
 export NEXUS_PASSWORD=$(oc exec $NEXUS_POD -- cat /nexus-data/admin.password)
 echo $NEXUS_PASSWORD
-echo $NEXUS_PASSWORD > nexus_password.txt
+#echo $NEXUS_PASSWORD > nexus_password.txt
 
 oc set deployment-hook dc/nexus --mid --volumes=nexus-volume-1 \
 -- /bin/sh -c "echo nexus.scripts.allowCreation=true >./nexus-data/etc/nexus.properties"
