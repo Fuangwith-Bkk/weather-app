@@ -1,17 +1,27 @@
 # Java EE 8 - Weather App
-This directory contains an example Java EE 8 app that is used by the Java EE 8 scenarios of learn.openshift.com
+The 'code' directory contains an example Java EE 8 app that is used by the Java EE 8 scenarios of learn.openshift.com
 
-## Branches
+# Environment Setup
+## Request Environment
+- request OpenShift 4.4 workshop from RHPDS
 
-- master - contains the starting branch for a user
-- solution - contains the finished app that they user should end up with after completing the scenarios from learn.openshift.com
+## login
+export GUID=<GUID>
+oc login -u opentlc-mgr https://api.cluster-${GUID}.${GUID}.example.opentlc.com:6443
 
+## create demo resources
+cd weather-app/scripts
+./setupJenkins.sh
 
-## setup database
-oc new-app -e POSTGRESQL_USER=weather-app-user -e POSTGRESQL_PASSWORD=secret -e POSTGRESQL_DATABASE=weather-db --name=weather-postgresql postgresql
+test login Jenkins
 
-oc set env dc/weather-app -e DB_SERVICE_PREFIX_MAPPING=weather-postgresql=DB \
-  -e DB_JNDI=java:jboss/datasources/WeatherDS \
-  -e DB_DATABASE=weather-db \
-  -e DB_USERNAME=weather-app-user \
-  -e DB_PASSWORD=secret
+./setupNexus.sh
+login Nexus with admin/<generated password>
+change new password to passw0rd
+enable anonymous access
+
+./setupSonarQube.sh
+test login Sonar Qube
+
+./setupDev.sh
+./setupProd.sh
