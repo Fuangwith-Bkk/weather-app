@@ -17,5 +17,5 @@ oc new-build --strategy=docker -D $'FROM quay.io/openshift/origin-jenkins-agent-
 oc get is
 oc get pods -w
 
-oc apply -f scripts/manifests/jenkins-configmap.yaml -n demo-jenkins
+oc apply -f manifests/jenkins-configmap.yaml -n demo-jenkins
 echo "Jenkins Url = $(oc get route jenkins -n demo-jenkins -o jsonpath='{.spec.host}') "

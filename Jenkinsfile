@@ -21,7 +21,7 @@ pipeline{
     prodTag     = "0.0"
     
     // Blue-Green Settings
-    destApp     = "weather-green"
+    destApp     = "weather-app-green"
     activeApp   = ""
   }
 
@@ -221,9 +221,87 @@ pipeline{
     }
 
     
+    // Blue/Green Deployment into Production
+    // -------------------------------------
+    stage('Blue/Green Production Deployment') {
+      steps {
+        dir('code') {
+          script {
+   
+            openshift.withCluster(){
+              openshift.withProject("${prodProject}"){
+                echo "Blue/Green Production Deployment in project: ${prodProject}"
+
+                // 1. Determine which application is active
+                // oc get route/weather-app -o jsonpath="{.spec.to.name}"
+                activeApp = openshift.selector("route","weather-app").object().spec.to.name
+                if(activeApp == "weather-app-green"){
+                  destApp = "weather-app-blue"
+                }
+                echo "Active App: ${activeApp} -> Destination App: ${destApp}"
+
+                // 2. Update the image for the other application 
+                // oc get dc tasks-green -o jsonpath="{.spec.template.spec.containers[0].image}"
+                def imageWeather = "image-registry.openshift-image-registry.svc:5000/${devProject}/${imageName}:${devTag}"
+                echo "Image Weather is ${imageWeather}"
+                def dc = openshift.selector("dc","${destApp}").object()
+                dc.spec.template.spec.containers[0].image = "$imageWeather"
+
+                // 3. Deploy into the other application
+                echo "Apply DeploymentConfig"
+                openshift.apply(dc)
+
+                echo "Rollout new app"
+                openshift.selector("dc", "${destApp}").rollout().latest()
+
+                // 5. Wait until application is running
+                def dc_prod = openshift.selector("dc", "${destApp}").object()
+                def dc_version = dc_prod.status.latestVersion
+                def rc_prod = openshift.selector("rc", "${destApp}-${dc_version}").object()
+
+                echo "Waiting for ReplicationController ${destApp}-${dc_version} to be ready"
+                while (rc_prod.spec.replicas != rc_prod.status.readyReplicas) {
+                  sleep 5
+                  rc_prod = openshift.selector("rc", "${destApp}-${dc_version}").object()
+                }
+
+              }
+            }
+
+          }
+        }
+
+        
+      }
+    }
+
+
+    stage('Switch over to new Version') {
+      steps{
+        echo "Switching Production application to ${destApp}."
+        script {
+          // TBD: Execute switch
+          //      Hint: sleep 5 seconds after the switch
+          //            for the route to be fully switched over
+          openshift.withCluster(){
+            openshift.withProject("${prodProject}"){
+              // TBD: Stop for approval 
+              input "Switch new vesion to product?"
+              echo "Switching Production application to ${destApp}."
+
+              // TBD: After approval execute the switch 
+              def route = openshift.selector("route","weather-app").object()
+              route.spec.to.name = "${destApp}"
+              openshift.apply(route)
+            }
+          }
+
+        }
+      }
+    }
 
 
   }
 
-}
+} 
 
