@@ -14,11 +14,6 @@
       <username>admin</username>
       <password>passw0rd</password>
     </server>
-    <server>
-      <id>nexus-test</id>
-      <username>admin</username>
-      <password>passw0rd</password>
-    </server>
   </servers>
 </settings>
 
