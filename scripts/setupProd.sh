@@ -23,3 +23,7 @@ oc new-app -e POSTGRESQL_USER=weather-app-user -e POSTGRESQL_PASSWORD=secret -e 
 
 oc policy add-role-to-group system:image-puller system:serviceaccounts:${WEATHER_PROD} -n ${WEATHER_DEV}
 oc policy add-role-to-user edit system:serviceaccount:demo-jenkins:jenkins -n ${WEATHER_PROD}
+
+oc label dc/weather-postgresql app.kubernetes.io/part-of=Weather-App app.kubernetes.io/name=postgresql -n ${WEATHER_PROD}
+oc annotate dc weather-app-blue app.openshift.io/connects-to=weather-postgresql --overwrite  -n ${WEATHER_PROD}
+oc annotate dc weather-app-green app.openshift.io/connects-to=weather-postgresql --overwrite  -n ${WEATHER_PROD}

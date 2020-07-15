@@ -3,6 +3,8 @@ kind: DeploymentConfig
 metadata:
   labels:
     app: weather-app-blue
+    app.kubernetes.io/name: eap
+    app.kubernetes.io/part-of: Weather-App
   name: weather-app-blue
 spec:
   replicas: 1
