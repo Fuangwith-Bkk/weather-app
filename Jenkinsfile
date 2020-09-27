@@ -292,7 +292,9 @@ pipeline{
               // TBD: After approval execute the switch 
               def route = openshift.selector("route","weather-app").object()
               route.spec.to.name = "${destApp}"
-              openshift.apply(route)
+              //openshift.apply(route) << error
+              //sh('oc version')
+              openshift.raw('patch', "route/weather-app" , '-p', "'{\"spec\":{\"to\":{\"name\":\"$destApp\"}}}'")
             }
           }
 
