@@ -249,7 +249,9 @@ pipeline{
 
                 // 3. Deploy into the other application
                 echo "Apply DeploymentConfig"
-                openshift.apply(dc)
+                //openshift.apply(dc)
+                openshift.raw('patch', "dc/$destApp" , '-p', "'{\"spec\":{\"template\":{\"spec\":{\"containers\":[{\"name\":\"$destApp\",\"image\":\"$imageWeather\"}]}}}}'")
+
 
                 echo "Rollout new app"
                 openshift.selector("dc", "${destApp}").rollout().latest()

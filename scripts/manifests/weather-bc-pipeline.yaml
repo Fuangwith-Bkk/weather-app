@@ -212,7 +212,8 @@ spec:
                         dc.spec.template.spec.containers[0].image = "$imageWeather"
 
                         echo "Apply DeploymentConfig"
-                        openshift.apply(dc)
+                        //openshift.apply(dc)
+                        openshift.raw('patch', "dc/$destApp" , '-p', "'{\"spec\":{\"template\":{\"spec\":{\"containers\":[{\"name\":\"$destApp\",\"image\":\"$imageWeather\"}]}}}}'")
 
                         echo "Rollout new app"
                         openshift.selector("dc", "${destApp}").rollout().latest()
@@ -245,7 +246,7 @@ spec:
 
                       def route = openshift.selector("route","weather-app").object()
                       route.spec.to.name = "${destApp}"
-                      //openshift.apply(route) << error
+                      //openshift.apply(route) 
                       //sh('oc version')
                       openshift.raw('patch', "route/weather-app" , '-p', "'{\"spec\":{\"to\":{\"name\":\"$destApp\"}}}'")
                     }
