@@ -32,9 +32,6 @@ spec:
             
             destApp     = "weather-app-green"
             activeApp   = ""
-
-            nexusUser = ""
-            nexusPassword =""
           }
 
           stages{
@@ -52,15 +49,6 @@ spec:
                                 
                                 prodTag = "${version}"
                                 echo "prodTag: ${prodTag} "
-
-                                nexusUser = sh (
-                                  script: 'oc get secret nexus-credential -o jsonpath="{.data.username}"| base64 -d -',
-                                  returnStdout: true
-                                ).trim()
-                                nexusPassword = sh (
-                                  script: 'oc get secret nexus-credential -o jsonpath="{.data.password}"| base64 -d -',
-                                  returnStdout: true
-                                ).trim()
                         }
                       }
                   }
@@ -105,13 +93,10 @@ spec:
               steps {
                 dir('code') {
                   script {
-                    //echo "Publish to Nexus"
+                    echo "Publish to Nexus"
                     def nexusRepo = "http://nexus.demo-weather-ci-cd.svc.cluster.local:8081/repository/maven-releases/"
                     echo "Nexus Repository: ${nexusRepo}"
                     sh "$mvnCmd deploy -DskipTest=true -DaltDeploymentRepository=nexus::default::${nexusRepo}"
-                    //echo "nexusUser=${nexusUser}"
-                    //echo "nexusPassword=${nexusPassword}"
-                    //sh "${mvnCmd} deploy -Dquarkus.package.uber-jar=true -Dinternal.repo.username=${nexusUser} -Dinternal.repo.password=${nexusPassword} -DskipTests=true -DaltDeploymentRepository=nexus::default::${nexusRepo}"
                   }
                 }
               }

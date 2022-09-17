@@ -307,6 +307,8 @@ echo "Jenkins URL = $(oc get route jenkins -n ${CICD_PROJECT} -o jsonpath='{.spe
 echo "NEXUS URL = $(oc get route nexus -n ${CICD_PROJECT} -o jsonpath='{.spec.host}') "
 echo "NEXUS Password = ${NEXUS_PASSWORD}"
 echo "Nexus password is stored at bin/nexus_password.txt"
+echo "Change Nexus's password to passw0rd and enable anonymous access"
+echo "if Nexus Password is empty, run this script again"
 echo "Jenkins will use user/password store in secret nexus-credential to access nexus"
 echo "Login to Nexus with admin and jenkins"
 echo "Record this password and change it via web console"
