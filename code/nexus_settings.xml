@@ -12,10 +12,10 @@
   <servers>
     <server>
       <id>nexus</id>
-      <!-- <username>admin</username>
-      <password>passw0rd</password> -->
-      <username>${internal.repo.username}</username>
-      <password>${internal.repo.password}</password>
+      <username>admin</username>
+      <password>passw0rd</password>
+      <!-- <username>${internal.repo.username}</username>
+      <password>${internal.repo.password}</password> -->
     </server>
   </servers>
 </settings>

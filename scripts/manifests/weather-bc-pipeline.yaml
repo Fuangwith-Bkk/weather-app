@@ -32,6 +32,9 @@ spec:
             
             destApp     = "weather-app-green"
             activeApp   = ""
+
+            nexusUser = ""
+            nexusPassword =""
           }
 
           stages{
@@ -49,6 +52,15 @@ spec:
                                 
                                 prodTag = "${version}"
                                 echo "prodTag: ${prodTag} "
+
+                                nexusUser = sh (
+                                  script: 'oc get secret nexus-credential -o jsonpath="{.data.username}"| base64 -d -',
+                                  returnStdout: true
+                                ).trim()
+                                nexusPassword = sh (
+                                  script: 'oc get secret nexus-credential -o jsonpath="{.data.password}"| base64 -d -',
+                                  returnStdout: true
+                                ).trim()
                         }
                       }
                   }
@@ -79,7 +91,7 @@ spec:
                 dir('code') {
                   script {
                     echo "Running Code Analysis"
-                    def sonarHost = "http://sonarqube.demo-sonarqube.svc.cluster.local:9000"
+                    def sonarHost = "http://sonarqube.demo-weather-ci-cd.svc.cluster.local:9000"
                     def projectName = "weather-app-${devTag}" 
                     echo "Project Name: ${projectName}"
                     sh "$mvnCmd sonar:sonar -Dsonar.host.url=${sonarHost} -Dsonar.projectName=${projectName} -Dsonar.projectVersion=${devTag}"
@@ -93,10 +105,13 @@ spec:
               steps {
                 dir('code') {
                   script {
-                    echo "Publish to Nexus"
-                    def nexusRepo = "http://nexus.demo-nexus.svc.cluster.local:8081/repository/releases/"
+                    //echo "Publish to Nexus"
+                    def nexusRepo = "http://nexus.demo-weather-ci-cd.svc.cluster.local:8081/repository/maven-releases/"
                     echo "Nexus Repository: ${nexusRepo}"
                     sh "$mvnCmd deploy -DskipTest=true -DaltDeploymentRepository=nexus::default::${nexusRepo}"
+                    //echo "nexusUser=${nexusUser}"
+                    //echo "nexusPassword=${nexusPassword}"
+                    //sh "${mvnCmd} deploy -Dquarkus.package.uber-jar=true -Dinternal.repo.username=${nexusUser} -Dinternal.repo.password=${nexusPassword} -DskipTests=true -DaltDeploymentRepository=nexus::default::${nexusRepo}"
                   }
                 }
               }
@@ -111,7 +126,7 @@ spec:
                     openshift.withCluster(){
                       openshift.withProject("${devProject}"){
                         echo "In project ${devProject}"
-                        def nexusRepo = "http://nexus.demo-nexus.svc.cluster.local:8081/repository/releases/"
+                        def nexusRepo = "http://nexus.demo-weather-ci-cd.svc.cluster.local:8081/repository/maven-releases/"
                         def nexusBinFile = "com/redhat/examples/${imageName}/${prodTag}/${imageName}-${prodTag}.war"   
                         def nexusFile = "${nexusRepo}${nexusBinFile}"
                         
@@ -169,7 +184,7 @@ spec:
                 script {
                   echo "Skopeo copy.."
                   def imageWeatherDev = "image-registry.openshift-image-registry.svc:5000/${devProject}/${imageName}:${devTag}"
-                  def imageNexus = "nexus-registry.demo-nexus.svc.cluster.local:5000/${imageName}:${devTag}"
+                  def imageNexus = "nexus-registry.demo-weather-ci-cd.svc.cluster.local:5000/${imageName}:${devTag}"
                   echo "FROM ${imageWeatherDev} TO ${imageNexus}"
                   sh ("""skopeo copy \
                       --src-tls-verify=false \
