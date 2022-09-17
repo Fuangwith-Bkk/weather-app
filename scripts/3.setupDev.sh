@@ -1,9 +1,12 @@
 #!/bin/sh
 
-export WEATHER_DEV="demo-weather-dev"
-oc new-project ${WEATHER_DEV} --display-name "Weather - Dev"
+WEATHER_DEV="demo-weather-dev"
+CICD="demo-weather-ci-cd"
 
-oc policy add-role-to-user edit system:serviceaccount:demo-jenkins:jenkins -n ${WEATHER_DEV}
+
+#oc new-project ${WEATHER_DEV} --display-name "Weather - Dev"
+
+oc policy add-role-to-user edit system:serviceaccount:${CICD}:jenkins -n ${WEATHER_DEV}
 
 oc apply -f manifests/weather-dc-dev.yaml  -n ${WEATHER_DEV}
 oc apply -f manifests/weather-svc-dev.yaml  -n ${WEATHER_DEV}

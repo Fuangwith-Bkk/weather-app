@@ -4,15 +4,18 @@
     <mirror>
       <id>Nexus</id>
       <name>Nexus Public Mirror</name>
-      <url>http://nexus.ci-cd.svc.cluster.local:8081/repository/maven-all-public/</url>
+      <url>http://nexus:8081/repository/maven-all-public/</url>
+      <!-- <url>http://nexus.demo-weather-ci-cd.svc.cluster.local:8081/repository/maven-all-public/</url> -->
       <mirrorOf>*</mirrorOf>
     </mirror>
   </mirrors>
   <servers>
     <server>
       <id>nexus</id>
-      <username>admin</username>
-      <password>passw0rd</password>
+      <!-- <username>admin</username>
+      <password>passw0rd</password> -->
+      <username>${internal.repo.username}</username>
+      <password>${internal.repo.password}</password>
     </server>
   </servers>
 </settings>
